@@ -1,8 +1,14 @@
+from datetime import timedelta
 from pathlib import Path
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent
 
+WSGI_APPLICATION = "src.utils.config.wsgi.application"
+ASGI_APPLICATION = "src.utils.config.asgi.application"
 
 SECRET_KEY = "django-insecure-3fqyow0rqnobk#rig$+rf5xv8++mqc)1a+t2oav9j_mzb!-e12"
 
@@ -20,9 +26,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "daphne",
+    "channels",
     "django.contrib.staticfiles",
     "src.apps.first_app.apps.FirstAppConfig",
-    "channels",
+    "rest_framework",
+    "drf_spectacular",
+    "rest_framework_simplejwt",
 ]
 
 MIDDLEWARE = [
@@ -53,15 +62,17 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "src.utils.config.wsgi.application"
-ASGI_APPLICATION = "src.utils.config.asgi.application"
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": (os.getenv("REDIS_HOST"), os.getenv("REDIS_PORT")),
-            "symmetric_encryption_key": SECRET_KEY,
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", "localhost"),
+                    int(os.getenv("REDIS_PORT", 6379)),
+                )
+            ],
+            "symmetric_encryption_keys": [SECRET_KEY],
         },
     },
 }
@@ -74,6 +85,32 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
+}
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Your Project API",
+    "DESCRIPTION": "Your project description",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # OTHER SETTINGS
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+    "SLIDING_TOKEN_LIFETIME": timedelta(days=30),
+    "SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER": timedelta(days=1),
+    "SLIDING_TOKEN_LIFETIME_LATE_USER": timedelta(days=30),
 }
 
 
@@ -117,3 +154,4 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "first_app.User"
